@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat Real Time com NodeJS + Socket.io</title>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  
+  <form id="chat"> <!--INÍCIO DO FORM -->
+    <input type="text" name="username" placeholder="Digite seu usuário">
+    <div class="messages"></div>
+    <input type="text" name="message" placeholder="Digite sua mensagem">
+
+    <button type="submit">Enviar</button>
+  </form><!--/FIM DO FORM -->
+
+  <!--INÍCIO DOS SCRIPTS-->
+  <script type="text/javascript">
+    //conectar com o socket do backend...
+    //como o socket do servidor está no mesmo endereço, então eu posso utilizar a mesma URL!
+    var socket = io('http://localhost:3000'); //esse io é do socket io da cdn, definido no <head> acima!
+    
+    //função que irá RENDERIZAR as mensagens na Div...
+    function renderMessage(message){
+      $('.messages').append(`
+        <div class="message">
+          <strong>${message.author}:</strong>
+          ${message.message}
+        </div>
+      `);
+    }
+
+    //aqui a aplicação recebe as mensagens anteriores e então para cada mensagem ele renderiza na tela
+    socket.on('previousMessages', function(message){
+      for (message of message){
+        renderMessage(message);
+      }
+    });
+    
+
+    //aqui eu irei 'ouvir' o evento de broadcast que o backend está enviando, ou seja caso existir o font, irá receber o evento 'receivedMessage'!
+    //aqui a aplicação recebe as possíveis mensagens anteriores, se existirem ele chama o renderMessage que irá renderizar as mensagens anteriores no browser do cliente...
+    socket.on('receivedMessage', function(message){
+      renderMessage(message);
+    })
+
+
+    $('#chat').submit(function(event){
+      event.preventDefault(); //desabilitar o evento padrão do button.Submit
+
+      const author = $('input[name=username]').val();
+      const message = $('input[name=message]').val();
+
+      //se houver algo digitado nos input 'username' e 'message', então:
+      if(author.length && message.length){
+        const messageObject = {
+          author: author,
+          message: message
+        }
+
+        //chamar função que irá renderizar o conteúdo da mensagem escrita...
+        renderMessage(messageObject);
+
+        //evento do socket que irá 'emitir' alguma ação, essa ação eu chamei de 'sendMessage', esse evento irá enviar 'emitir' algo, que é meu 'messageObject'!
+        socket.emit('sendMessage', messageObject);
+      }
+      
+    });
+
+  </script>
+
+</body>
+</html>
